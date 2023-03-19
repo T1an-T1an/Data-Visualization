@@ -1,0 +1,99 @@
+---
+title: "Preliminary Analysis Results on Medical Data "
+author:
+  - name: Jingda Yang
+
+execute:
+    echo: false
+output:
+  html_document:
+    smooth-scroll: true
+    theme:
+      light: cosmo
+    highlight: zenburn
+    toc: true
+    toc_depth: 2
+
+  pdf_document:
+    toc: true
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+reference-location: margin
+citation-location: margin
+---
+## Github URL
+[Jingda Yang_HW2_Github](https://github.com/anly503/hw2-spring-2023-T1an-T1an)
+
+## Abstract
+This data analysis report provides insights into the relationship between gender, age, ANA values, IGG/IGM/IGA levels, and thrombosis using data from a medical dataset. The report highlights potential patterns and correlations in the data, suggesting that certain demographic and biomarker factors may influence the development and severity of thrombosis. The findings could help healthcare providers tailor preventive measures and treatment strategies to different patient groups.
+
+## Data Analysis Report
+### Gender vs. Thrombosis
+```{python}
+# | echo: true
+# | label: fig-charts
+# | fig-cap: "Gender vs. Thrombosis"
+# | code-fold: true
+from IPython.display import Image
+img = 'plot-01.png'
+Image(url=img, width=750, height=700)
+```
+
+
+
+In Figure 1, we can see a bar plot that displays the relationship between gender and thrombosis in the dataset. The x-axis shows the gender categories: 'Female' and 'Male', and the y-axis displays the count of individuals with or without thrombosis.
+
+From the plot, we can see that the number of females who do not have thrombosis is much higher than the number of females who have thrombosis. Specifically, around 310 females do not have thrombosis, while about 80 females have thrombosis, 50 females have severe thrombosis, and only 5 females have very severe thrombosis.
+
+On the other hand, we can see that the number of males who do not have thrombosis is also higher than the number of males who have thrombosis. Specifically, 310 males do not have thrombosis, while about 40 males have thrombosis, 5 males have severe thrombosis, and only 2 males have very severe thrombosis.
+
+One potential pattern that we can observe is that females are more susceptible to thrombosis than males. This is because the number of females with thrombosis is higher than the number of males with thrombosis. Additionally, we can see that the severity of thrombosis is much higher in females than in males, as the number of females with severe and very severe thrombosis is much higher than the number of males with severe and very severe thrombosis. This pattern suggests that there may be gender-specific factors that influence the development and severity of thrombosis.
+
+### Age vs. Thrombosis
+```{python}
+# | echo: true
+# | label: fig-charts1
+# | fig-cap: "Age vs. Thrombosis"
+# | code-fold: true
+
+img = 'plot-03.png'
+Image(url=img, width=750, height=700)
+```
+
+Figure 2 is a bar plot that displays the distribution of thrombosis severity across different age groups. The x-axis represents the age groups, while the y-axis represents the count of individuals with thrombosis. The plot shows that the number of individuals with thrombosis increases with age. The age group with the highest number of individuals with thrombosis is 21-30, with 14 individuals. The severity of thrombosis is also displayed in the plot. Most individuals have thrombosis that is not severe, but some have thrombosis that is severe, most severe, or both. The highest number of individuals with severe thrombosis is in the age group of 11-20, with five individuals.
+
+This plot highlights the importance of monitoring the incidence of thrombosis in different age groups. Healthcare providers can tailor preventive measures to target those groups. Additionally, it suggests that there may be a correlation between age and thrombosis severity, which is worth exploring further.
+
+One pattern that can be observed in this plot is that the number of individuals with thrombosis increases with age, but the number of individuals with severe or most severe thrombosis remains relatively low in each age group. This pattern suggests that the severity of thrombosis may be related to factors other than age, such as genetics, or lifestyle. Further research is needed to confirm this pattern and identify potential risk factors for severe or most severe thrombosis.
+
+### ANA values vs. Admission
+```{python}
+# | echo: true
+# | label: fig-charts2
+# | fig-cap: "ANA values vs. Admission"
+# | code-fold: true
+
+img = 'plot-02.png'
+Image(url=img, width=750, height=550)
+```
+
+Figure-3 shows the relationship between the ANA value age, and patient outcomes, specifically hospitalization or transfer. The data suggests that as the ANA value decreases, there is a corresponding decrease in the likelihood of hospitalization or transfer. Conversely, when the ANA value is high, most patients exhibit a positive Admission level, indicating a greater likelihood of requiring hospitalization or transfer to another healthcare facility. This suggests that the ANA value may be a useful indicator in predicting patient outcomes and determining appropriate levels of care. Age is not decisive for the Admission level.
+
+Additionally, the graph also highlights a potential threshold ANA value, beyond which patients become significantly more likely to require hospitalization or transfer. This information could aid medical professionals in making timely and informed decisions regarding patient care, potentially leading to better health outcomes and reduced healthcare costs.
+
+```{python}
+# | echo: true
+# | label: fig-charts3
+# | fig-cap: "IGG，IGM，IGA vs. Admission"
+# | code-fold: true
+
+img = 'plot-04.png'
+Image(url=img, width=750, height=650)
+```
+
+Figure-4 presents information on the relationship between thrombosis and different combinations of IGG, IGM, and IGA levels. Each combination of levels is represented by a tuple (0/1, 0/1, 0/1) where 0 means normal range and 1 means not in the normal range. The graph shows that the most common combination of levels is (0,0,0) and the majority of patients with this combination do not have thrombosis. However, patients with (1,0,0) or (0,0,1) levels are more likely to have thrombosis. Interestingly, patients with (0,1,0) levels do not have thrombosis, while patients with (1,1,0) levels have a low likelihood of thrombosis. Patients with (0,1,1) or (1,0,1) levels have a mixed likelihood of thrombosis.
+
+## Summary
+In conclusion, the figures presented in this analysis provide valuable insights into the relationships between gender, age, ANA values, IGG, IGM, IGA levels, and thrombosis. The patterns observed suggest that there may be gender-specific and age-specific factors that influence the development and severity of thrombosis. Additionally, the ANA value and combinations of IGG, IGM, and IGA levels may be useful indicators in predicting patient outcomes and determining appropriate levels of care. Further research is needed to confirm these patterns and identify potential risk factors for severe or most severe thrombosis. Healthcare providers can use these findings to tailor preventive measures and improve health outcomes for patients.

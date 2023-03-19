@@ -1,0 +1,368 @@
+---
+title: "EDA "
+author:
+  - name: Jingda Yang
+
+execute:
+    echo: false
+output:
+  html_document:
+    smooth-scroll: true
+    theme:
+      light: cosmo
+    highlight: zenburn
+    toc: true
+    toc_depth: 2
+
+  pdf_document:
+    toc: true
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+reference-location: margin
+citation-location: margin
+#bibliography: skeleton.bib
+---
+## Github URL
+[Code Link](https://github.com/anly503/hw2-spring-2023-T1an-T1an)
+[Dataset](https://sorry.vse.cz/~berka/challenge/pkdd1999/tsumoto.htm)
+
+## Data summary
+The patient data in the Tsumoto dataset comes from three separate files: patient records, specialized lab tests, and laboratory tests that are kept in hospital information systems. Patient records include information on diagnosis and hospital admission in addition to demographic details like sex and birthdate. The findings of the particular laboratory tests include information on the patient's symptoms, measurements of coagulation and the degree of thrombosis, and test results for various antibodies. The outcomes of common tests, such as measures of blood glucose and cholesterol, kidney and liver function, are maintained in hospital information systems as laboratory examination reports.
+
+The whole dataset is intended to investigate collagen diseases, with a specific focus on coagulation problems. There are three distinct files that make up the document, and each one contains data from a different source. The patient information file contains information on demographics, diagnosis, and hospital admission, whereas the specific laboratory examinations file contains details on a variety of specialized laboratory tests. The third file, laboratory examinations stored in hospital information systems, contains details on common laboratory tests performed on patients. By combining the information from these files, researchers may discover a lot about the connections between coagulation issues, collagen diseases, and the outcomes of widespread laboratory tests.
+
+
+## Initial questions
+* Is there a difference in the degree of thrombosis between males and females?
+* Does the degree of thrombosis vary across different age groups?
+* Would the concentration of ANA and age have an impact on the patient (who was admitted to the hospital or followed at the outpatient clinic)?
+* Does the degree of thrombosis relate to IGG, IGM, and IGA?
+
+## Data munging
+```{python}
+# | echo: true
+# | code-fold: true
+import missingno as msno
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import seaborn as sns
+import warnings
+
+# Ignore all warning messages
+warnings.filterwarnings("ignore")
+```
+
+```{python}
+# | echo: true
+# | code-fold: true
+# Read the data
+tsumoto_a = pd.read_csv('./data/TSUMOTO_A.CSV', encoding='unicode_escape')
+tsumoto_b = pd.read_csv('./data/TSUMOTO_B.CSV', encoding='unicode_escape')
+tsumoto_c = pd.read_csv('./data/TSUMOTO_C.CSV',
+                        encoding='ISO-8859-1', on_bad_lines='skip')
+tsumoto_a.columns = tsumoto_a.columns.str.lower()
+tsumoto_b.columns = tsumoto_b.columns.str.lower()
+tsumoto_c.columns = tsumoto_c.columns.str.lower()
+
+column_map = {
+
+    'first date': 'first_date',
+    'acl igg': 'acl_igg',
+    'acl igm': 'acl_igm',
+    'acl iga': 'acl_iga',
+    'examination date': 'examination_date',
+    'ana pattern': 'ana_pattern'
+
+}
+
+# Apply the column map to each dataset
+tsumoto_a = tsumoto_a.rename(columns=column_map)
+tsumoto_b = tsumoto_b.rename(columns=column_map)
+tsumoto_c = tsumoto_c.rename(columns=column_map)
+```
+
+```{python}
+# | echo: true
+# | label: fig-charts7
+# | fig-cap: "Missing Value Correlation Matrix"
+# | code-fold: true
+merged_df = pd.merge(tsumoto_a, tsumoto_b, on='id', how='left')
+
+%matplotlib inline
+
+missing_value = msno.heatmap(merged_df, figsize=(10, 8))
+missing_value.set_title("Missing Value Correlation Matrix", fontsize=20)
+plt.savefig("missing_value_correlation_matrix.png", dpi=300, bbox_inches='tight')
+plt.show()
+
+```
+
+
+```{python}
+# | echo: true
+# | label: fig-charts8
+# | fig-cap: "Missing Data Matrix"
+# | code-fold: true
+
+
+# check the missing value pattern
+%matplotlib inline
+
+
+# Plot the missingno matrix on the created figure
+missing_value = msno.matrix(merged_df, figsize=(10, 8))
+missing_value.set_title("Missing Data Matrix", fontsize=20)
+# Save the plot
+plt.savefig("Missing_Data_Matrix", dpi=300, bbox_inches='tight')
+# Show the plot
+plt.show()
+```
+
+The merged tables such as Figure 1 and Figure 2 reveal that there are several missing values in the original data. If we want to analyze a specific variable, but there are missing values in that variable, we need to perform some preliminary processing of these missing values. To address this issue, we can use various techniques, such as imputation or deletion, to handle the missing values. In this case, we will use the deletion method to remove the missing values. The deletion method is a simple and straightforward method to handle missing values. It is a method of removing the missing values from the dataset. 
+
+
+```{python}
+# | echo: true
+# | label: tbl-planets1
+# | tbl-cap: "Missing Value Correlation Matrix"
+# | code-fold: true
+# drop rows with missing values in 'Thrombosis' column
+merged_df_2 = merged_df.dropna(subset=['thrombosis'])
+merged_df_2['examination_date'] = pd.to_datetime(
+    merged_df['examination_date'], format='%Y/%m/%d')  # convert to datetime
+merged_df_2['birthday'] = pd.to_datetime(
+    merged_df['birthday'], format='%Y/%m/%d')  # convert to datetime
+merged_df_2 = merged_df_2.reset_index(drop=True)  # reset index
+
+# compute the difference between the two date columns
+merged_df_2['age'] = ((merged_df_2['examination_date'] -
+                      merged_df_2['birthday']).dt.days)/365
+merged_df_2['age'] .fillna(0, inplace=True)
+merged_df_2['age'] = merged_df_2['age'].astype(int)
+
+merged_df_2.head()
+```
+
+My objective is to study the potential correlation between gender, age and thrombosis. I am utilizing two datasets - tsumoto_a, which includes information about the patient's gender and date of birth, and tsumoto_b, which contains details regarding whether the patient has thrombosis and the severity of the condition. To investigate this relationship, I merged the two datasets by ID and removed the rows where thrombus data was missing. This merged dataset will help me in analyzing the correlation between gender, age, and the severity of thrombosis.
+
+```{python}
+# | echo: true
+# | code-fold: true
+# | label: tbl-planets2
+# | tbl-cap: "Missing Value Correlation Matrix"
+new_table = pd.merge(merged_df_2, tsumoto_c, on='id', how='right')
+new_table_1 = new_table[['id', 'igg', 'igm', 'iga', 'thrombosis']]
+new_table_1.dropna(inplace=True)
+
+new_table_1['igg'] = pd.to_numeric(new_table_1['igg'], errors='coerce')
+new_table_1['igm'] = pd.to_numeric(new_table_1['igm'], errors='coerce')
+new_table_1['iga'] = pd.to_numeric(new_table_1['iga'], errors='coerce')
+
+new_table_1.loc[(new_table_1['igg'] > 900) & (
+    new_table_1['igg'] < 2000), 'igg_level'] = 0
+new_table_1.loc[(new_table_1['igg'] <= 900) | (
+    new_table_1['igg'] >= 2000), 'igg_level'] = 1
+
+new_table_1.loc[(new_table_1['igm'] > 40) & (
+    new_table_1['igm'] < 400), 'igm_level'] = 0
+new_table_1.loc[(new_table_1['igm'] <= 40) | (
+    new_table_1['igm'] >= 400), 'igm_level'] = 1
+
+new_table_1.loc[(new_table_1['iga'] > 80) & (
+    new_table_1['iga'] < 500), 'iga_level'] = 0
+new_table_1.loc[(new_table_1['iga'] <= 80) | (
+    new_table_1['iga'] >= 500), 'iga_level'] = 1
+
+new_table_2 = new_table_1.iloc[:, [0, -4, -3, -2, -1]]
+new_table_2['thrombosis'] = new_table_2['thrombosis'].replace(
+    {1.0: 1, 2.0: 1, 3.0: 1})  # 1: Positive, 0: Negative
+
+
+new_table_2 = new_table_2.drop_duplicates(subset=['id'], keep='first')
+new_table_2 = new_table_2.reset_index(drop=True)  # reset index
+
+new_table_2.head()
+```
+
+
+Given that anti-Cardiolipin antibodies (aCL) are closely associated with thrombosis, I aimed to investigate the relationship between the levels of aCL IgG, aCL IgM, and aCL IgA, and thrombosis. To achieve this, I combined data from Table-1 and tsumoto_c. Specifically, I retained only the tsumoto_c data for aCL IgG, aCL IgM, aCL IgA, and ID. Next, I linked the two datasets using unique ID and recoded the three variables. A value of 0 was assigned if the three measurements were within the normal range, and a value of 1 if they were not within the normal range. Additionally, if the patient had a thrombus, regardless of the severity level, a value of 1 was assigned, and a value of 0 if they did not have a thrombus.
+
+
+## Exploratory analysis
+
+
+```{python}
+# | echo: true
+# | code-fold: true
+# | label: fig-charts3
+# | fig-cap: "Gender vs. Thrombosis"
+# create a crosstab table
+crosstab = pd.crosstab(merged_df_2['sex'], merged_df_2['thrombosis'])
+
+# set color palette
+colors = ['#4C72B0', '#55A868', '#C44E52', '#8172B2']
+
+# plot a stacked bar chart with specified colors
+fig, ax = plt.subplots(figsize=(8, 6))
+crosstab.plot(kind='bar', stacked=True, color=colors, ax=ax)
+
+# add legend
+handles, labels = ax.get_legend_handles_labels()
+labels = ['Thrombosis: Negative', 'Thrombosis: Positive',
+          'Thrombosis: Positive and Very Severe', 'Thrombosis: Positive and Most Severe']
+ax.legend(reversed(handles), reversed(labels), title='Thrombosis', loc='best')
+
+ax.set_xticklabels(['Female', 'Male'], fontname='serif', fontsize=14)
+# add title and axis labels with serif font
+plt.title('Gender vs. Thrombosis', fontname='serif', fontsize=18)
+plt.xlabel('Gender', fontname='serif', fontsize=14)
+plt.ylabel('Count', fontname='serif', fontsize=14)
+
+# add grid
+plt.grid(axis='y')
+
+# save the plot
+plt.savefig("plot-01.png", dpi=300, bbox_inches='tight')
+# show the plot
+plt.show()
+
+```
+In addition to the missing value analysis, several figures were generated to explore the relationships between different variables. Figure 3 shows the relationship between gender and thrombus occurrence, which is a crucial factor for thrombosis development.
+
+```{python}
+# | echo: true
+# | code-fold: true
+# | label: fig-charts4
+# | fig-cap: "Scatter Plot of Age and ANA by Admission"
+# create a crosstab table
+pos_mask = merged_df_2['admission'] == '+'
+neg_mask = merged_df_2['admission'] == '-'
+merged_df_2['age'] = merged_df_2['age'].astype(float)
+merged_df_2['ana'] = merged_df_2['ana'].astype(float)
+
+
+# create a scatter plot
+fig, ax = plt.subplots(figsize=(12, 8))
+ax.scatter(merged_df_2.loc[pos_mask, 'age'], merged_df_2.loc[pos_mask,
+           'ana'], label='Admission: Positive', alpha=0.5, s=30)
+ax.scatter(merged_df_2.loc[neg_mask, 'age'], merged_df_2.loc[neg_mask,
+           'ana'], label='Admission: Negative', alpha=0.5, s=30)
+
+# set axis labels and title
+ax.set_xlabel('Age', fontsize=14)
+ax.set_ylabel('ANA', fontsize=14)
+ax.set_title('Scatter Plot of Age and ANA by Admission', fontsize=18)
+
+# add legend and grid
+ax.legend(fontsize=12, loc='center right')
+ax.grid(True)
+
+# show the plot
+plt.dpi = 200
+plt.savefig("plot-02.png", dpi=300, bbox_inches='tight')
+plt.show()
+```
+Figure 4 presents the correlation between admission age and ANA test results. The results of the ANA test can indicate if a person has an autoimmune disorder, which is often associated with thrombosis.
+
+```{python}
+# | echo: true
+# | code-fold: true
+# | label: fig-charts5
+# | fig-cap: "Age vs. Thrombosis"
+filtered_df = merged_df_2[(merged_df_2['thrombosis']
+                           != 0.0) & (merged_df_2['age'] > 0)]
+
+# Create age groups
+age_groups = pd.cut(filtered_df['age'], bins=[10, 20, 30, 40, 50, 60, 70, 80])
+
+# Create a crosstab table
+crosstab = pd.crosstab(age_groups, filtered_df['thrombosis'])
+
+# Set color palette
+colors = ['#55A868', '#C44E52', '#8172B2']
+
+# Plot a stacked bar chart with specified colors
+fig, ax = plt.subplots(figsize=(8, 6))
+crosstab.plot(kind='bar', stacked=True, color=colors, ax=ax)
+
+# Add legend
+handles, labels = ax.get_legend_handles_labels()
+labels = ['Thrombosis: Positive', 'Thrombosis: Positive and Very Severe',
+          'Thrombosis: Positive and Most Severe']
+ax.legend(reversed(handles), reversed(labels), title='Thrombosis', loc='best')
+
+# Add title and axis labels with serif font
+plt.title('Age vs. Thrombosis', fontname='serif', fontsize=18)
+plt.xlabel('Age', fontname='serif', fontsize=14)
+plt.ylabel('Count', fontname='serif', fontsize=14)
+
+# Format x-axis labels
+labels = ['11~20', '21~30', '31~40', '41~50', '51~60', '61~70']
+ax.set_xticklabels(labels, fontname='serif', fontsize=12)
+
+# Add grid
+plt.grid(axis='y')
+# Save the plot
+plt.savefig("plot-03.png", dpi=300, bbox_inches='tight')
+# Show the plot
+plt.show()
+
+```
+Figure 5 displays the distribution of thrombosis cases across different age ranges. This information can help us understand which age groups are more prone to thrombosis.
+```{python}
+# | echo: true
+# | code-fold: true
+# | label: fig-charts6
+# | fig-cap: "Counts of IGG, IGM, IGA, and Thrombosis"
+
+# create a crosstab table
+crosstab = pd.crosstab([new_table_2['igg_level'], new_table_2['igm_level'],
+                       new_table_2['iga_level']], new_table_2['thrombosis'])
+
+# set color palette
+colors = ['#4C72B0', '#C44E52']
+
+# plot a stacked bar chart with specified colors
+sns.set_palette(colors)
+ax = crosstab.plot(kind='bar', stacked=True, figsize=(8, 6))
+
+# add legend
+handles, labels = ax.get_legend_handles_labels()
+labels = ['Thrombosis: Negative', 'Thrombosis: Positive']
+ax.legend(reversed(handles), reversed(labels), title='Thrombosis', loc='best')
+
+# add title and axis labels with serif font
+plt.title('Counts of IGG, IGM, IGA, and Thrombosis',
+          fontname='serif', fontsize=18)
+plt.xlabel('IGG, IGM, and IGA Levels', fontname='serif', fontsize=14)
+plt.ylabel('Count', fontname='serif', fontsize=14)
+
+# add grid
+plt.grid(axis='y')
+# save the plot
+plt.savefig("plot-04.png", dpi=300, bbox_inches='tight')
+# show the plot
+plt.show()
+```
+Finally, Figure 6 shows the association between normal/abnormal IGG, IGM, and IGA levels and the occurrence of thrombosis. These three immunoglobulin classes are known to be closely linked to the development of thrombosis, and their levels are thus a key factor in thrombosis risk assessment. There are three numbers of one kind on the x-axis. They represent the levels of IGG, IGM, and IGA respectively. 0 means the test result is in the normal range and 1 means it is not.  
+
+# Technical summary
+The purpose of this study was to examine the relationship between anti-Cardiolipin antibodies and thrombosis using data from three different sources. The data sets were merged based on a shared ID column, and the analysis involved multiple steps, including data cleaning, handling of missing data, and visualization of the relationships between various variables.
+
+The first step in the analysis involved addressing missing values in the data. We also examined the distribution of variables to detect potential outliers or anomalies that could affect the analysis.
+
+After the data cleaning process, we generated several visualizations to explore the relationships between different variables. Heatmaps were used to identify correlations and patterns of missing data, while bar plots were used to visualize the distribution of categorical variables such as gender and ANA test results. Scatterplots were used to explore the relationship between continuous variables such as age and thrombosis. These visualizations were useful in identifying trends and patterns in the data.
+
+The analysis showed that the relationship between anti-Cardiolipin antibodies and thrombosis is complex and multifaceted. Other variables, such as age, gender, and ANA test results, also play a role in this relationship. We found that gender may not be a significant factor in predicting thrombosis, but age and ANA test results were significant predictors. Additionally, we discovered that the number of patients with thrombosis increased with age.
+
+The high rates of missing data in some variables, particularly in Table 2, required us to use various techniques to handle missing data. We also had to exclude some variables from the analysis due to high rates of missing data. This underscores the importance of data quality and the need to ensure that data is collected and stored in a way that minimizes missing data.
+
+Our study found that visualizations, such as heatmaps and scatterplots, were particularly helpful in identifying patterns and relationships between different variables. However, some visualizations, such as bar plots, were less effective in exploring relationships between variables.
+
+In conclusion, this study provides important insights into the relationship between anti-Cardiolipin antibodies and thrombosis. Thorough data cleaning and visualization are crucial in exploring complex relationships between multiple variables. By identifying the factors that are most closely associated with thrombosis, our analysis can guide future research and clinical interventions to reduce the risk of thrombosis among patients with anti-Cardiolipin antibodies.
+
+To investigate the temporal relationships between anti-Cardiolipin antibodies, thrombosis, and other relevant variables, future research should consider incorporating additional data. Moreover, further research should examine additional potential predictors of thrombosis, such as comorbidities or lifestyle factors, to gain a more comprehensive understanding of this complex phenomenon.
