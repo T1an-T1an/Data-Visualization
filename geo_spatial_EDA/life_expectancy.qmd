@@ -25,6 +25,9 @@ format:
 #bibliography: skeleton.bib
 ---
 
+### Data Description
+The data used in the plots is from the Gapminder dataset, which provides information on life expectancy, population, and other demographic indicators for countries around the world. 
+
 ### Import
 ```{python}
 # | echo: true
