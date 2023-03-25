@@ -1,0 +1,208 @@
+---
+title: "Life Expectancy EDA "
+author:
+  - name: Jingda Yang
+
+execute:
+    echo: false
+output:
+  html_document:
+    smooth-scroll: true
+    theme:
+      light: cosmo
+    highlight: zenburn
+    toc: true
+    toc_depth: 2
+
+  pdf_document:
+    toc: true
+format:
+  html:
+    embed-resources: true
+    code-fold: true
+#reference-location: margin
+#citation-location: margin
+#bibliography: skeleton.bib
+---
+
+### Import
+```{python}
+# | echo: true
+# | code-fold: true
+import plotly.graph_objects as go
+import plotly.express as px
+import plotly.io as pio
+
+pio.renderers.default = "plotly_mimetype+notebook_connected"
+```
+
+
+### Load Data
+
+```{python}
+# | echo: true
+# | code-fold: true
+
+# DATAFRAME
+df = px.data.gapminder()
+df = df.drop(['iso_num'], axis=1)   # DROP COLUMN
+print("Shape =", df.shape)
+print(df)
+```
+
+
+### Data Exploration
+The first plot is a simple choropleth map that shows the life expectancy for different countries in the year 2007. 
+```{python}
+# | echo: true
+# | code-fold: true
+
+# ISOLATE ONE YEAR OF DATA FOR PLOTTING
+df = df.query("year==2007")
+
+# INITIALIZE GRAPH OBJECT
+fig = go.Figure()
+
+# ADD A CHOROPLETH TRACES FOR THE DATA-FRAME
+fig.add_trace(  # Add A trace to the figure
+    go.Choropleth(  # Specify the type of the trace
+        uid="full-set",  # uid=unique id (Assign an ID to the trace)
+        # Supply location information tag for mapping
+        locations=df["iso_alpha"],
+        z=df["lifeExp"],  # Data to be color-coded on graph
+        colorbar_title="Life expectancy",  # Title for color-bar
+        visible=True,  # Specify whether or not to make data-visible when rendered
+    )
+)
+
+# ADD A TITLE
+fig.update_layout(
+    title={
+        "text": "Life Expectancy in 2007",
+        "font": {"size": 20, "color": "black", "family": "Times New Roman"},
+        "x": 0.5,
+        "y": 0.9,
+        "xanchor": "center",
+        "yanchor": "top"
+    }
+)
+# SHOW
+fig.show()
+```
+
+
+
+### Add Slider and Dropdown Menu
+The second plot is an interactive choropleth map that allows the user to compare the life expectancy across different continents and years. The user can select a specific continent and year using a dropdown menu and a slider. The color scale used in both plots represents the life expectancy, with higher values being represented by darker colors. The maps show the differences in life expectancy across the world and the impact of different factors such as geography and time on life expectancy.
+```{python}
+# | echo: true
+# | code-fold: true
+
+# DATAFRAME
+df = px.data.gapminder()
+df = df.drop(['iso_num'], axis=1)   # DROP COLUMN
+df['year'] = df['year'].astype(str)
+years = df['year'].unique()
+continents = df['continent'].unique()
+
+fig = go.Figure()
+# Create and add slider
+sliders = []
+buttons = []
+
+# Create and add slider
+num_continents = len(continents)
+num_years = len(years)
+
+# first create the buttons
+for i in range(num_continents):
+    continent = continents[i]
+    for j in range(num_years):
+        year = years[j]
+        df_filter = df.loc[(df['continent'] == continent)
+                           & (df['year'] == year)]
+        if i == 0 and j == 0:
+            visible = True
+        else:
+            visible = False
+        fig.add_trace(
+            go.Choropleth(
+                uid="full-set",
+                locations=df_filter['iso_alpha'],
+                z=df_filter['lifeExp'],
+                colorbar_title="lifeExp",
+                visible=visible,
+                zmin=30,
+                zmax=80
+            )
+        )
+# next create the sliders
+for i in range(len(continents)):
+    continent = continents[i]
+    steps = []
+
+    for j in range(len(years)):
+        year = years[j]
+        visibility = []
+        for k in range(len(fig.data)):
+            index = i * len(years) + j
+            if index == k:
+                visible = True
+            else:
+                visible = False
+            visibility.append(visible)
+
+        step = {
+            "label": year,
+            "method": "update",
+            "args": [{"visible": visibility}],
+        }
+        steps.append(step)
+
+    slider = [dict(
+        active=0,
+        currentvalue={"prefix": "Year: "},
+        steps=steps
+    )]
+    sliders.append(slider)
+
+    # create the button
+    visible_dict = {"visible": steps[0]['args'][0]['visible']}
+    sliders_dict = {"sliders": sliders[i]}
+    args_list = [visible_dict, sliders_dict]
+
+    # put parameters in the button
+    button = dict(label=continent,
+                  method="update",
+                  args=args_list)
+    buttons.append(button)
+
+# Add dropdown menu
+fig.update_layout(
+    width=800,
+    height=533,
+    sliders=sliders[0],
+    updatemenus=[
+        dict(
+            buttons=buttons,
+            direction="down",
+            x=0.1,
+            y=1.1,
+            xanchor="left",
+            yanchor="top",
+        )
+    ],
+    title={
+        "text": "Life Expectancy by Year and Continent",
+        "font": {"size": 20, "color": "black", "family": "Times New Roman"},
+        'y': 0.95,
+        'x': 0.5,
+        'xanchor': 'center',
+        'yanchor': 'top'
+
+    }
+)
+
+# show the figure
+fig.show()
+```
